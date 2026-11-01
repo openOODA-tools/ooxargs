@@ -48,9 +48,19 @@ jobs:
         run: |
           if ! command -v xargs >/dev/null 2>&1; then
             sudo apt-get update -qq
-            sudo apt-get install -y -qq xargs
+            sudo apt-get install -y -qq findutils
           fi
-          command -v xargs >/dev/null 2>&1 || { echo "::error::the upstream tool xargs is required for the parity gate"; exit 1; }
+          if ! command -v xargs >/dev/null 2>&1; then
+            for cand in xargs ; do
+              for d in /usr/local/bin /usr/games /usr/bin /bin /usr/sbin /sbin; do
+                if [ -x "$d/$cand" ]; then
+                  sudo ln -sf "$d/$cand" /usr/local/bin/xargs
+                  break 2;
+                fi
+              done
+            done
+          fi
+          command -v xargs >/dev/null 2>&1 || { echo "::error::the upstream tool xargs is required for the parity gate and the package findutils does not put it on this runner"; exit 1; }
 
       - name: Build, verify, and test
         working-directory: ${{ github.workspace }}/ooxargs

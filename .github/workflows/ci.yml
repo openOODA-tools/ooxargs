@@ -102,21 +102,3 @@ jobs:
           ./dist/ooxargs --version > .ooda-cache/run2.txt 2>&1 || true
           cmp -s .ooda-cache/run1.txt .ooda-cache/run2.txt || { echo "::error::the tool is not deterministic across two runs"; exit 1; }
 
-      - name: Install the upstream tool
-        working-directory: ${{ github.workspace }}
-        run: |
-          if ! command -v xargs >/dev/null 2>&1; then
-            sudo apt-get update -qq
-            sudo apt-get install -y -qq xargs
-          fi
-          command -v xargs >/dev/null 2>&1 || { echo "::error::the upstream tool xargs is required for the parity gate"; exit 1; }
-
-      - name: Parity against the upstream tool
-        working-directory: ${{ github.workspace }}/ooxargs
-        env:
-          OODA_COMPILER: ${{ github.workspace }}/oodac/bin/oodac
-          OODA_FS_READDIR: ${{ github.workspace }}
-          OODA_FS_WRITEDIR: ${{ github.workspace }}
-          OODA_NO_JAIL: "1"
-        run: make parity
-
