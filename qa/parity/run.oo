@@ -19,9 +19,14 @@
 // because the fleet Makefile reads the header of every page with head -7.
 // Every word is wrapped in single quotes, so a word that holds a shell
 // metacharacter is inert.
+//
+// The word codec lives on the page words.oo next to this one. The generator
+// writes the case table with the writer of that page and this runner reads it
+// with the reader of that page, so the two can never drift apart.
 
 import "std/core/text/num_buffer.oo";
 import "std/fs/os/fs.oo";
+import "words.oo";
 
 // The count of the three kinds of case.
 type ParityCount = struct {
@@ -30,83 +35,6 @@ type ParityCount = struct {
     skips: Int,
     fails: Int
 };
-
-// Split a line into words. A word may be wrapped in double quotes.
-fn parity_words(line: String) -> List[String] {
-    let mut out: List[String] = list_new();
-    let mut cur: String = "";
-    let mut in_quotes: Bool = false;
-    let mut has: Bool = false;
-    let n: Int = chars_len(line);
-    let mut i: Int = 0;
-    while i < n {
-        let c: String = char_at(line, i);
-        if c == "\"" {
-            in_quotes = !in_quotes;
-            has = true;
-        } else if c == " " && !in_quotes {
-            if has { out = list_push(out, cur); cur = ""; has = false; }
-        } else {
-            cur = cur + c;
-            has = true;
-        }
-        i = i + 1;
-    }
-    if has { out = list_push(out, cur); }
-    return out;
-}
-
-// Wrap a word in single quotes so the shell reads it as one plain word.
-fn parity_quote(s: String) -> String {
-    let mut quoted: String = "'";
-    let n: Int = chars_len(s);
-    let mut i: Int = 0;
-    while i < n {
-        let c: String = char_at(s, i);
-        if c == "'" { quoted = quoted + "'\\''"; } else { quoted = quoted + c; }
-        i = i + 1;
-    }
-    return quoted + "'";
-}
-
-// Split a file into lines.
-fn parity_lines(s: String) -> List[String] {
-    let mut out: List[String] = list_new();
-    let mut cur: String = "";
-    let n: Int = chars_len(s);
-    let mut i: Int = 0;
-    while i < n {
-        let c: String = char_at(s, i);
-        if c == "\n" {
-            out = list_push(out, cur);
-            cur = "";
-        } else {
-            cur = cur + c;
-        }
-        i = i + 1;
-    }
-    out = list_push(out, cur);
-    return out;
-}
-
-// Remove the spaces and the tabs at both ends of a string.
-fn parity_trim(s: String) -> String {
-    let n: Int = chars_len(s);
-    let mut start: Int = 0;
-    while start < n {
-        let c: String = char_at(s, start);
-        if c != " " && c != "\t" { break; }
-        start = start + 1;
-    }
-    let mut end: Int = n;
-    while end > start {
-        let c: String = char_at(s, end - 1);
-        if c != " " && c != "\t" { break; }
-        end = end - 1;
-    }
-    if end <= start { return ""; }
-    return str_slice(s, start, end);
-}
 
 // Run one tool with the given arguments. The stdout and the stderr go to
 // files and the standard input is closed, so a tool that reads the input never

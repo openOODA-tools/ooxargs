@@ -56,7 +56,6 @@ jobs:
           OODA_FS_READDIR: ${{ github.workspace }}
           OODA_FS_WRITEDIR: ${{ github.workspace }}
           OODA_NO_JAIL: "1"
-          OODA_BUILD_MULTI: "1"
         run: make build
 
       - name: Require the tool binary
@@ -75,7 +74,6 @@ jobs:
           OODA_FS_READDIR: ${{ github.workspace }}
           OODA_FS_WRITEDIR: ${{ github.workspace }}
           OODA_NO_JAIL: "1"
-          OODA_BUILD_MULTI: "1"
         run: make verify
 
       - name: Test
@@ -85,7 +83,6 @@ jobs:
           OODA_FS_READDIR: ${{ github.workspace }}
           OODA_FS_WRITEDIR: ${{ github.workspace }}
           OODA_NO_JAIL: "1"
-          OODA_BUILD_MULTI: "1"
         run: make test
 
       - name: Pure test audit
