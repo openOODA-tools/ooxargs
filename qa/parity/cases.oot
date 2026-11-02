@@ -21,4 +21,10 @@
 # A case may be preceded by an input line. That line names the command that
 # makes the input of the case and its arguments. The runner pipes that command
 # into both tools, so a tool that works on a stream is compared on a stream.
+#
+# A case may be preceded by a setup line. That line is a command that
+# prepares the input of the cases that follow it, such as the command that
+# makes the file the tool reads. The runner runs it again before each of the
+# two tools, so both see the same input even when one of them changes it.
 
+setup echo "==> Running negative-trust verification suite..."
