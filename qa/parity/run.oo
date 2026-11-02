@@ -192,6 +192,25 @@ fn parity_cases(sys: &ProcessCap, fs_r: &FsReadCap, lines: List[String], upstrea
     return c;
 }
 
+// Find the upstream tool on the runner. The standard places are searched,
+// because the process that runs the gate holds a short path and the program
+// of the upstream often stands in /usr/sbin, where the path of the gate does
+// not reach. The workflow of every repository makes the same search and
+// links the program it finds, so the gate and the workflow always compare
+// against the same program.
+fn parity_find_upstream(sys: &ProcessCap, upstream: String) -> String {
+    let script: String = "for d in /usr/local/bin /usr/bin /bin /usr/local/sbin /usr/sbin /sbin /usr/games; do "
+        + "p=\"$d\"/" + parity_quote(upstream) + "; "
+        + "if [ -x \"$p\" ]; then echo \"$p\"; exit 0; fi; done; "
+        + "command -v " + parity_quote(upstream) + " 2>/dev/null";
+    let r: Result[String, String] = sys_exec(sys, "sh", "-c", script);
+    if r.is_err() { return ""; }
+    let lines: List[String] = parity_lines(r.val);
+    if list_len(lines) == 0 { return ""; }
+    let first: String = parity_trim(list_get(lines, 0));
+    return first;
+}
+
 // Read the case table, run every case, and report the parity result.
 pub fn main(sys: &ProcessCap, fs_r: &FsReadCap, fs_w: &FsWriteCap, env: &EnvCap) -> Int {
     let cases_path: String = "qa/parity/cases.oot";
@@ -210,13 +229,13 @@ pub fn main(sys: &ProcessCap, fs_r: &FsReadCap, fs_w: &FsWriteCap, env: &EnvCap)
     }
     if upstream == "" { println("ERR\tparity\tno upstream in " + cases_path); return 1; }
     if tool_rel == "" { println("ERR\tparity\tno tool in " + cases_path); return 1; }
-    let probe: Result[String, String] = sys_exec(sys, "sh", "-c", "command -v " + parity_quote(upstream));
-    if probe.is_err() {
+    let upstream_path: String = parity_find_upstream(sys, upstream);
+    if upstream_path == "" {
         println("ERR\tparity\tupstream tool " + upstream + " is not installed. The parity gate cannot pass without it.");
         return 1;
     }
     let tool: String = if str_starts_with(tool_rel, "/") { tool_rel } else { "./" + tool_rel };
-    let c: ParityCount = parity_cases(sys, fs_r, lines, upstream, tool);
+    let c: ParityCount = parity_cases(sys, fs_r, lines, upstream_path, tool);
     println("PARITY " + tool + " against " + upstream + " match=" + int_to_str(c.matches)
         + " differ=" + int_to_str(c.devs) + " skip=" + int_to_str(c.skips)
         + " fail=" + int_to_str(c.fails));
