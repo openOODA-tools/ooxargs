@@ -7,3 +7,13 @@
 #
 # Write the case line as it stands in qa/parity/cases.oot, with its
 # match word in front of it.
+#
+# A deviation is not a way to make the gate pass. The exit code of a
+# declared case is still compared with the exit code of the upstream
+# tool, and a case whose exit code differs is a failure that has to be
+# fixed in the tool. A deviation says that the tool answers the same
+# question the same way and words the answer its own way.
+#
+# The cases come from the test recipe of the repository, so a case line
+# that is not in the table is a line the recipe does not hold any more.
+# Such a line is ignored, and it does not change the gate.
