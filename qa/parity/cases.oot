@@ -17,4 +17,8 @@
 #
 # The cases come from the test recipe of this repository, so they are the
 # arguments this tool already claims to accept.
+#
+# A case may be preceded by an input line. That line names the command that
+# makes the input of the case and its arguments. The runner pipes that command
+# into both tools, so a tool that works on a stream is compared on a stream.
 
