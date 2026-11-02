@@ -1,0 +1,9 @@
+# Declared deviations of ooxargs.
+#
+# A case line written here is a deviation the owner declares: the exit
+# code still has to be the same as the upstream tool, but the text of the
+# answer may differ. Every other case has to match the upstream tool
+# byte for byte.
+#
+# Write the case line as it stands in qa/parity/cases.oot, with its
+# match word in front of it.
