@@ -1,0 +1,101 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build the release asset
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ooxargs
+
+      - uses: actions/checkout@v4
+        with:
+          repository: openOODA/oodac
+          path: oodac
+
+      - uses: actions/checkout@v4
+        with:
+          repository: openOODA/oodar
+          path: oodar
+
+      - uses: actions/checkout@v4
+        with:
+          repository: openOODA/std
+          path: std
+
+      - name: Require compiler and clang
+        working-directory: ${{ github.workspace }}
+        run: |
+          test -x oodac/bin/oodac || chmod +x oodac/bin/oodac
+          if ! command -v clang >/dev/null; then sudo apt-get update && sudo apt-get install -y clang; fi
+          command -v clang >/dev/null || { echo "clang is required for the build"; exit 1; }
+
+      - name: Build the oodar runtime
+        working-directory: ${{ github.workspace }}
+        run: make -C oodar/scripts -f Makefile modular
+
+      - name: Install the upstream tool
+        working-directory: ${{ github.workspace }}
+        run: |
+          if ! command -v xargs >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq findutils
+          fi
+          if ! command -v xargs >/dev/null 2>&1; then
+            for cand in xargs ; do
+              for d in /usr/local/bin /usr/games /usr/bin /bin /usr/sbin /sbin; do
+                if [ -x "$d/$cand" ]; then
+                  sudo ln -sf "$d/$cand" /usr/local/bin/xargs
+                  break 2;
+                fi
+              done
+            done
+          fi
+          command -v xargs >/dev/null 2>&1 || { echo "::error::the upstream tool xargs is required for the parity gate and the package findutils does not put it on this runner"; exit 1; }
+
+      - name: Build, verify, and test
+        working-directory: ${{ github.workspace }}/ooxargs
+        env:
+          OODA_COMPILER: ${{ github.workspace }}/oodac/bin/oodac
+          OODA_FS_READDIR: ${{ github.workspace }}
+          OODA_FS_WRITEDIR: ${{ github.workspace }}
+          OODA_NO_JAIL: "1"
+          OODA_BUILD_MULTI: "1"
+        run: |
+          make build
+          make verify
+          make test
+
+      - name: Stage the release asset
+        working-directory: ${{ github.workspace }}
+        run: |
+          test -x ooxargs/dist/ooxargs || { echo "::error::dist/ooxargs was not produced"; exit 1; }
+          cp ooxargs/dist/ooxargs ooxargs-linux-x86_64
+          sha256sum ooxargs-linux-x86_64 > ooxargs-linux-x86_64.sha256
+
+      - name: Upload the release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: ooxargs-linux-x86_64
+          path: |
+            ooxargs-linux-x86_64
+            ooxargs-linux-x86_64.sha256
+
+  publish:
+    needs: build
+    uses: openOODA/openOODA/.github/workflows/auto-release.yml
+    with:
+      target_tag: ${{ github.ref_name }}
+      artifact_pattern: ooxargs-linux-x86_64
+    permissions:
+      contents: write
+
